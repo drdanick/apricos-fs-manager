@@ -349,12 +349,13 @@ static void loadOnFullDiskFailsCleanly(void) {
     for(track = 0; track < TRACKS; track++) {
         for(sector = 0; sector < SECTORS_PER_TRACK; sector++) {
             int block = track * SECTORS_PER_TRACK + sector;
-            if(before[SPACE_BITMAP_SEGMENT * SECTOR_SIZE + block / 8] & (1 << (block % 8)))
+            if(before[SPEC_BITMAP_SECTOR * SECTOR_SIZE + block / 8] & (1 << (block % 8)))
                 CHECK(bitmapAllocated(fs, track, sector));
         }
     }
     /* Nor may the boot code and volume information have changed */
-    CHECK(memcmp(before, sectorBytes(fs, 0, 0), SPACE_BITMAP_SEGMENT * SECTOR_SIZE) == 0);
+    CHECK(memcmp(before, sectorBytes(fs, 0, 0), 62 * SECTOR_SIZE) == 0);
+    CHECK(memcmp(before + SPEC_VOLUME_SECTOR * SECTOR_SIZE, sectorBytes(fs, 0, SPEC_VOLUME_SECTOR), SECTOR_SIZE) == 0);
 }
 
 

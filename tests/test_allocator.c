@@ -23,7 +23,7 @@ static void tearDown(void) {
 }
 
 static unsigned char* bitmap(void) {
-    return sectorBytes(fs, 0, SPACE_BITMAP_SEGMENT);
+    return sectorBytes(fs, 0, SPEC_BITMAP_SECTOR);
 }
 
 

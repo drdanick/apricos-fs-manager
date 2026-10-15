@@ -46,7 +46,7 @@ FsDirectory popDirectoryFromStack(Filesystem* fs) {
         directory.rawData = NULL;
         directory.dirEntries = NULL;
     } else {
-        directory = fs->pathStack[fs->currentPathUnit--];
+        directory = fs->pathStack[--fs->currentPathUnit];
     }
 
     return directory;
@@ -117,10 +117,15 @@ int countDirectoryEntries(FsDirectory* dir) {
 
 FsDirectoryEntry* findDirEntryByName(FsDirectory* dir, char* name) {
     static char nameBuff[MAX_DIR_ENTRY_NAME_LENGTH + 1];
+    static char searchName[MAX_DIR_ENTRY_NAME_LENGTH + 1];
     int i = 0;
     FsDirectoryEntry* entries = dir->dirEntries;
 
     memset(nameBuff, '\0', MAX_DIR_ENTRY_NAME_LENGTH + 1);
+
+    /* Names are stored cut short to MAX_DIR_ENTRY_NAME_LENGTH, so compare them that way */
+    memset(searchName, '\0', sizeof(searchName));
+    memcpy(searchName, name, MIN(MAX_DIR_ENTRY_NAME_LENGTH, strlen(name)));
 
     for( ; i < MAX_DIR_ENTRIES; i++) {
         FsDirectoryEntry* entry = &entries[i];
@@ -130,7 +135,7 @@ FsDirectoryEntry* findDirEntryByName(FsDirectory* dir, char* name) {
 
         /* convert entry name into a c string */
         memcpy(nameBuff, entry->name, MAX_DIR_ENTRY_NAME_LENGTH);
-        if(strcmp(nameBuff, name) == 0) {
+        if(strcmp(nameBuff, searchName) == 0) {
             return entry;
         }
     }
@@ -202,7 +207,12 @@ int allocateAndAddEntryToDirectory(Filesystem* fs, FsDirectory* parentDir, char*
     if(blockNum < 0)
         return 0;
 
-    return addBlockEntrytoDirectory(parentDir, blockNum, childName, isFile);
+    if(!addBlockEntrytoDirectory(parentDir, blockNum, childName, isFile)) {
+        freeBlock(fs, blockNum);
+        return 0;
+    }
+
+    return 1;
 }
 
 int addBlockEntrytoDirectory(FsDirectory* parentDir, unsigned int childBlock, char* childName, char isFile) {
@@ -219,7 +229,7 @@ int addEntrytoDirectory(FsDirectory* parentDir, int childtrack, int childSector,
     entry = findDirEntryByName(parentDir, childName);
 
     if(entry || childIndex == -1) {
-        return -1;
+        return 0;
     }
 
     entry = &parentDir->dirEntries[childIndex];

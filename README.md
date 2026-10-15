@@ -140,7 +140,8 @@ Commands are not case sensitive, and file and directory names are converted to u
 Limits
 ------
 
-- Names are 1 to 6 characters. Longer names are cut short to 6 characters without warning.
+- Names are 1 to 6 characters. Longer names are cut short to 6 characters without warning, so
+  `PROGRAMS` and `PROGRAM` both mean `PROGRA`.
 - A directory holds up to 32 entries.
 - A file can be at most 32,512 bytes (127 sectors).
 - A disk has 31 tracks (1,984 sectors, 496 KiB) for files and directories. Track 0 is reserved.
@@ -152,23 +153,6 @@ Disk format
 The disk and filesystem format is described in the
 [Apricot OS documentation](https://github.com/drdanick/apricot-os-documentation)
 (`filesystem/filesystem.tex`).
-
-
-Known issues
-------------
-
-The tests in `tests/` found these bugs, and the tests that cover them currently fail:
-
-- Loading data onto a nearly full disk can overwrite the space bitmap, and reports success.
-- Appending to a file whose last sector is only partly full loses data and writes into track 0.
-- `savefile` can cut files short, depending on where their data was stored.
-- `touch` with a name that already exists, or `mkdir` in a full directory, wastes a sector.
-- Two long names that are the same in their first 6 characters both get created, as duplicates.
-- `cd`, `touch`, `loadfile` and `savefile` crash if no disk is mounted.
-- `newdisk` says the image was written even when it couldn't be.
-
-Until these are fixed, the safe way to put a file on a disk is to `touch` it and then `loadfile`
-it once, on a disk with plenty of free space.
 
 
 Testing

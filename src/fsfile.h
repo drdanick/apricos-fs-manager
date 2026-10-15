@@ -10,6 +10,8 @@ int getFsFileFromEntry(Filesystem* fs, FsDirectoryEntry* entry, FsFile* file);
 int getIndexOfFileBlock(FsFile* file, FsFileBlockPointer* blockPointer);
 FsFileBlockPointer* getNextFileBlock(Filesystem* fs, FsFile* file, FsFileBlockPointer* currentBlockPointer);
 FsFileBlockPointer* getLastAllocatedFileBlock(Filesystem* fs, FsFile* file);
+int countFileBlocks(FsFile* file);
+void truncateFileBlocks(Filesystem* fs, FsFile* file, int keepBlocks);
 int allocateNewFileData(Filesystem* fs, FsFile* file, unsigned int numBytes, FsFileAllocatedSpacePointer* outBlocks, int maxBlocks);
 long long allocateNewFileBlock(Filesystem* fs, FsFile* file);
 int deleteAllFileBlocks(Filesystem* fs, FsFile* file);

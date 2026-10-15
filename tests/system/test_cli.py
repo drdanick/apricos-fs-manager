@@ -20,7 +20,9 @@ from pathlib import Path
 import pytest
 
 TRACKS, SECTORS, SECTOR_SIZE = 32, 64, 256
-VOLUME_SECTOR, BITMAP_SECTOR = 62, 63
+# Track 1 (stored as 0) holds the bitmap in sector 63 and the volume
+# information in sector 64; stored sector numbers count from 0.
+BITMAP_SECTOR, VOLUME_SECTOR = 62, 63
 ROOT = (1, 0)
 
 
@@ -138,15 +140,31 @@ def test_files_round_trip(fsman, tmp_path):
     assert image.allocated() == {(0, s) for s in range(SECTORS)} | {ROOT}
 
 
-@pytest.mark.parametrize("command", [
+FILESYSTEM_COMMANDS = [
     "ls", "mkdir DIR", "cd DIR", "touch FILE", "rm FILE", "toggleexec FILE",
-    "loadfile FILE in.bin", "savefile FILE out.bin", "format VOL", "sync", "unmount",
-])
+    "loadfile FILE in.bin", "savefile FILE out.bin",
+]
+
+
+@pytest.mark.parametrize("command", FILESYSTEM_COMMANDS + ["format VOL", "sync", "unmount"])
 def test_commands_without_disk(fsman, tmp_path, command):
     """With no disk mounted, commands report an error instead of crashing."""
     (tmp_path / "in.bin").write_bytes(b"data")
     result = run(fsman, tmp_path, command, "exit")
     assert result.returncode == 0, f"exit status {result.returncode}\n{result.stdout}{result.stderr}"
+    assert "no filesystem mounted" in result.stdout.lower()
+    assert "Unknown Command" not in result.stdout
+    assert "Bye!" in result.stdout
+
+
+@pytest.mark.parametrize("command", FILESYSTEM_COMMANDS)
+def test_commands_on_unformatted_disk(fsman, tmp_path, command):
+    """With a mounted but unformatted disk, commands report an error instead of crashing."""
+    (tmp_path / "in.bin").write_bytes(b"data")
+    result = run(fsman, tmp_path, "newdisk t.dsk", "mount t.dsk", command, "exit")
+    assert result.returncode == 0, f"exit status {result.returncode}\n{result.stdout}{result.stderr}"
+    assert "not formatted" in result.stdout
+    assert "Unknown Command" not in result.stdout
     assert "Bye!" in result.stdout
 
 
