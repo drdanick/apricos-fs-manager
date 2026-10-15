@@ -27,6 +27,24 @@ char* strToUpper(char* str) {
     return str;
 }
 
+/*
+ * The working directory of the mounted filesystem. If there isn't one, prints
+ * why and returns NULL.
+ */
+FsDirectory* requireWorkingDirectory() {
+    if(!globalFileSystem) {
+        printf("No filesystem mounted!\n");
+        return NULL;
+    }
+
+    if(!getWorkingDirectory(globalFileSystem)) {
+        printf("Disk is not formatted!\n");
+        return NULL;
+    }
+
+    return getWorkingDirectory(globalFileSystem);
+}
+
 void printStatus() {
     static char cwd[4096]; /* Buffer for current working dir */
 
@@ -175,6 +193,31 @@ int cdCmd(char* dir) {
     }
 }
 
+/*
+ * Change to each directory in the rest of the command line, separated by '/'.
+ * If any step fails, the working directory is left unchanged.
+ */
+void cdPathCmd() {
+    char* dir;
+    int error = 0;
+    FsDirectory* pathStackCopy = savePathStack(globalFileSystem);
+    int oldPathStackEndIndex = globalFileSystem->currentPathUnit;
+
+    while(dir = strtok(NULL, "/\n"), dir != NULL) {
+        if(!cdCmd(strToUpper(dir))) {
+            error = 1;
+            restorePathStack(globalFileSystem, pathStackCopy, oldPathStackEndIndex);
+            break;
+        }
+    }
+
+    if(!error) {
+        freePathStack(pathStackCopy);
+    } else {
+        printf("Could not change to specified directory.\n");
+    }
+}
+
 int toggleexecCmd(char* entryName) {
     entryName = strToUpper(entryName);
     FsDirectoryEntry* entry = findDirEntryByName(getWorkingDirectory(globalFileSystem), entryName);
@@ -317,7 +360,7 @@ int newdiskCmd(char* fileName) {
     volumeInfo = (VolumeInfo*)getSectorData(diskData, 0, VOLUME_INFORMATION_SEGMENT);
     memcpy(volumeInfo->diskSignature, diskSignature, DISK_SIGNATURE_SIZE);
 
-    if(!saveDiskFile(fileName, diskData)) {
+    if(saveDiskFile(fileName, diskData) != 1) {
         freeDiskData(diskData);
         return 0;
     }
@@ -386,83 +429,60 @@ int processLine(char* line) {
     }
     else if(strcmp("mkdir", strToLower(command)) == 0) {
         char* dirName = strtok(NULL, " \n");
-        if(dirName) {
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(dirName) {
             mkdirCmd(dirName);
         } else {
             printf("Invalid directory name.\n");
         }
     }
     else if(strcmp("ls", strToLower(command)) == 0 || strcmp("dir", strToLower(command)) == 0) {
-        if(globalFileSystem) {
+        if(requireWorkingDirectory()) {
             lsCmd();
-        } else {
-            printf("No filesystem mounted!\n");
         }
     }
     else if(strcmp("cd", strToLower(command)) == 0) {
-        char* dir;
-        int error = 0;
-        FsDirectory* pathStackCopy = savePathStack(globalFileSystem);
-        int oldPathStackEndIndex = globalFileSystem->currentPathUnit;
-
-        while(dir = strtok(NULL, "/\n"), dir != NULL) {
-            if(!cdCmd(strToUpper(dir))) {
-                error = 1;
-                restorePathStack(globalFileSystem, pathStackCopy, oldPathStackEndIndex);
-                break;
-            }
-        }
-
-        if(!error) {
-            freePathStack(pathStackCopy);
-        } else {
-            printf("Could not change to specified directory.\n");
+        if(requireWorkingDirectory()) {
+            cdPathCmd();
         }
     }
     else if(strcmp("toggleexec", strToLower(command)) == 0) {
         char* entryName = strtok(NULL, " \n");
-        if(!entryName || strlen(entryName) == 0) {
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(!entryName || strlen(entryName) == 0) {
             printf("Invalid directory entry\n");
-        } else {
-            if(globalFileSystem) {
-                if(!toggleexecCmd(entryName)) {
-                    printf("Invalid directory entry\n");
-                }
-            } else {
-                printf("No filesystem mounted!\n");
-            }
+        } else if(!toggleexecCmd(entryName)) {
+            printf("Invalid directory entry\n");
         }
     }
     else if(strcmp("rm", strToLower(command)) == 0) {
         char* entryName = strtok(NULL, " \n");
-        if(globalFileSystem) {
-            if(!entryName || strlen(entryName) == 0) {
-                printf("Invalid directory entry\n");
-            } else {
-                rmCmd(entryName);
-            }
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(!entryName || strlen(entryName) == 0) {
+            printf("Invalid directory entry\n");
         } else {
-            printf("No filesystem mounted!\n");
+            rmCmd(entryName);
         }
     }
     else if(strcmp("touch", strToLower(command)) == 0) {
         char* entryName = strtok(NULL, " \n");
-        if(globalFileSystem) {
-            if(!entryName || strlen(entryName) == 0) {
-                printf("Invalid file name\n");
-            } else {
-                if(!touchCmd(entryName)) {
-                    printf("Error creating file\n");
-                }
-            }
-        } else {
-            rmCmd(entryName);
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(!entryName || strlen(entryName) == 0) {
+            printf("Invalid file name\n");
+        } else if(!touchCmd(entryName)) {
+            printf("Error creating file\n");
         }
     }
     else if(strcmp("loadfile", strToLower(command)) == 0) {
         char* entryName = strtok(NULL, " \n");
         char* fileName = strtok(NULL, " \n");
-        if(!entryName || !fileName || strlen(entryName) == 0 || strlen(fileName) == 0) {
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(!entryName || !fileName || strlen(entryName) == 0 || strlen(fileName) == 0) {
             printf("Invalid entry and or filename\n");
         } else {
             loadFileCmd(entryName, fileName);
@@ -471,7 +491,9 @@ int processLine(char* line) {
     else if(strcmp("savefile", strToLower(command)) == 0) {
         char* entryName = strtok(NULL, " \n");
         char* fileName = strtok(NULL, " \n");
-        if(!entryName || !fileName || strlen(entryName) == 0 || strlen(fileName) == 0) {
+        if(!requireWorkingDirectory()) {
+            /* Already reported */
+        } else if(!entryName || !fileName || strlen(entryName) == 0 || strlen(fileName) == 0) {
             printf("Invalid entry and or filename\n");
         } else {
             saveFileCmd(entryName, fileName);
