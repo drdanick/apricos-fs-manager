@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.15)
 set(CMAKE_LEGACY_CYGWIN_WIN32 0) # Remove when CMake >= 2.8.4 is required
 
 project(apricosfsman)
@@ -36,3 +36,9 @@ add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 add_subdirectory (src)
+
+option (APRICOSFSMAN_BUILD_TESTS "Build the test suite" ON)
+if (APRICOSFSMAN_BUILD_TESTS)
+    enable_testing ()
+    add_subdirectory (tests)
+endif()
