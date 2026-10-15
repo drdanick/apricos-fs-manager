@@ -28,7 +28,7 @@ static void tearDown(void) {
 }
 
 static unsigned char* volumeInfo(void) {
-    return sectorBytes(fs, 0, VOLUME_INFORMATION_SEGMENT);
+    return sectorBytes(fs, 0, SPEC_VOLUME_SECTOR);
 }
 
 
@@ -110,6 +110,16 @@ static void mountRequiresSignature(void) {
     char* path = tempPath("unsigned.dsk");
 
     diskData = createDiskData();
+    CHECK_INT_EQ(1, saveDiskFile(path, diskData));
+    CHECK(mountFilesystem(path) == NULL);
+}
+
+static void mountRequiresSignatureInLastSector(void) {
+    char* path = tempPath("misplaced.dsk");
+
+    /* The signature belongs in sector 64 of track 1; sector 63 is the bitmap */
+    diskData = createDiskData();
+    memcpy(getSectorData(diskData, 0, SPEC_BITMAP_SECTOR), diskSignature, DISK_SIGNATURE_SIZE);
     CHECK_INT_EQ(1, saveDiskFile(path, diskData));
     CHECK(mountFilesystem(path) == NULL);
 }
@@ -217,7 +227,7 @@ static void formatReservesTrackZeroAndRoot(void) {
 
     fs = mountFormattedDisk();
     CHECK(fs != NULL);
-    bitmap = sectorBytes(fs, 0, SPACE_BITMAP_SEGMENT);
+    bitmap = sectorBytes(fs, 0, SPEC_BITMAP_SECTOR);
 
     for(i = 0; i < 8; i++)
         CHECK_INT_EQ(0xFF, bitmap[i]);
@@ -277,6 +287,7 @@ static const TestCase tests[] = {
     TEST(loadShortFileFails),
     TEST(saveToUnwritablePathFails),
     TEST(mountRequiresSignature),
+    TEST(mountRequiresSignatureInLastSector),
     TEST(mountMissingFileFails),
     TEST(mountUnformattedDisk),
     TEST(unmountWithSaveWritesImage),

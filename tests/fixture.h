@@ -10,6 +10,13 @@
 #include <stddef.h>
 #include "filesystem.h"
 
+/*
+ * Where the spec puts the filesystem metadata in track 1 (stored as track 0).
+ * The spec numbers sectors from 1; these are the stored, 0-based numbers.
+ */
+#define SPEC_BITMAP_SECTOR 62 /* sector 63, the second to last */
+#define SPEC_VOLUME_SECTOR 63 /* sector 64, the last */
+
 /* The path of a file in this run's temporary directory. Removed at exit. */
 char* tempPath(const char* name);
 

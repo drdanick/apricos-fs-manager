@@ -101,7 +101,7 @@ Filesystem* mountBlankDisk(void) {
     char* path = tempPath("test.dsk");
     char* data = createDiskData();
 
-    memcpy(getSectorData(data, 0, VOLUME_INFORMATION_SEGMENT), diskSignature, DISK_SIGNATURE_SIZE);
+    memcpy(getSectorData(data, 0, SPEC_VOLUME_SECTOR), diskSignature, DISK_SIGNATURE_SIZE);
     saveDiskFile(path, data);
     freeDiskData(data);
 
@@ -129,7 +129,7 @@ unsigned char* sectorBytes(Filesystem* fs, int track, int sector) {
 int bitmapAllocated(Filesystem* fs, int track, int sector) {
     int block = track * SECTORS_PER_TRACK + sector;
 
-    return (sectorBytes(fs, 0, SPACE_BITMAP_SEGMENT)[block / 8] >> (block % 8)) & 1;
+    return (sectorBytes(fs, 0, SPEC_BITMAP_SECTOR)[block / 8] >> (block % 8)) & 1;
 }
 
 int allocatedDataSectors(Filesystem* fs) {
@@ -144,7 +144,7 @@ int allocatedDataSectors(Filesystem* fs) {
 }
 
 void fillDisk(Filesystem* fs, int leaveFree) {
-    unsigned char* bitmap = sectorBytes(fs, 0, SPACE_BITMAP_SEGMENT);
+    unsigned char* bitmap = sectorBytes(fs, 0, SPEC_BITMAP_SECTOR);
     int block;
 
     for(block = 0; block < SECTORS; block++) {

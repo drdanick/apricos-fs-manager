@@ -11,8 +11,10 @@
 #define MAX_PATH_DEPTH 64
 
 /* disk layout constants */
-#define VOLUME_INFORMATION_SEGMENT 62
-#define SPACE_BITMAP_SEGMENT 63
+/* Sectors of track 0. The spec numbers sectors from 1 and calls these
+ * sector 63 (second to last) and sector 64 (last) of track 1. */
+#define SPACE_BITMAP_SEGMENT 62
+#define VOLUME_INFORMATION_SEGMENT 63
 
 /* Volume info constants */
 #define VOLUME_NAME_LENGTH 8

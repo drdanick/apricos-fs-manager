@@ -20,7 +20,9 @@ from pathlib import Path
 import pytest
 
 TRACKS, SECTORS, SECTOR_SIZE = 32, 64, 256
-VOLUME_SECTOR, BITMAP_SECTOR = 62, 63
+# Track 1 (stored as 0) holds the bitmap in sector 63 and the volume
+# information in sector 64; stored sector numbers count from 0.
+BITMAP_SECTOR, VOLUME_SECTOR = 62, 63
 ROOT = (1, 0)
 
 
