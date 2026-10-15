@@ -19,7 +19,7 @@ endforeach ()
 # End-to-end tests of the command line, if pytest is available.
 # Use the python3 on the PATH, as a shell would, rather than a framework install.
 set (Python3_FIND_FRAMEWORK LAST)
-find_package (Python3 COMPONENTS Interpreter)
+find_package (Python3 3.7 COMPONENTS Interpreter)
 if (Python3_FOUND)
     execute_process (COMMAND ${Python3_EXECUTABLE} -c "import pytest"
         RESULT_VARIABLE pytest_missing OUTPUT_QUIET ERROR_QUIET)
