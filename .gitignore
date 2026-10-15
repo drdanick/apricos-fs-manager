@@ -18,3 +18,6 @@ data/
 
 # Ignore compile commands (used with YCM)
 compile_commands.json
+
+# Python
+__pycache__/
